@@ -1,33 +1,37 @@
-# ASPIRA - Learning Management System (Final Build)
+# ASPIRA – Learning Management System
 
-## Quick start
-1. Make sure MongoDB is running locally (default: mongodb://localhost:27017)
-2. Copy `.env.example` to `.env` and adjust values if needed
-3. Install dependencies:
+ASPIRA is a web-based Learning Management System (LMS) developed as a **Block A Finals practice project**.  
+The project focuses on implementing core LMS functionalities such as user management, course handling, announcements, attendance tracking, and role-based access control.
 
-   ```bash
-   npm install
-   ```
+---
 
-4. Seed sample data:
+## 📌 Features
 
-   ```bash
-   npm run seed
-   ```
+- User authentication and authorization (Admin, Teacher, Student)
+- Role-based access control
+- Course management (create, update, delete courses)
+- Announcements module
+- Attendance tracking
+- Student registration and profile management
 
-5. Start the server:
+---
 
-   ```bash
-   npm start
-   ```
+## 🧰 Tech Stack
 
-6. Open http://localhost:3000
+- **Backend:** Node.js
+- **Database:** MongoDB
+- **Frontend:** HTML, CSS, JavaScript
 
-## Seeded accounts
-- Admin: admin@aspira.edu / AdminPass123
-- Teacher: prof.jane@aspira.edu / TeacherPass123
-- Students: student1@aspira.edu / Student123, student2@aspira.edu / Student123
+---
 
-## Notes
-- Student registration is available via the Register page. Admin must promote users to teacher via the Admin dashboard or terminal.
-- Files uploaded are stored in the `uploads/` directory.
+## 🚀 Getting Started
+
+---
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/your-username/aspira-lms.git
+cd aspira-lms
