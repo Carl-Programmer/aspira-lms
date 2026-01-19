@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aspira LMS • Student Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* ============ Custom Styling ============ */
+      .sidebar {
+        background: linear-gradient(180deg, #5b0f13, #591015);
+        min-height: 100vh;
+        color: #fff;
+      }
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      }
+      .icon-box {
+        background: #fff4f4;
+        border-radius: 10px;
+        padding: 14px;
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+      }
+    </style>
+  </head>
+
+  <body class="bg-[#fff6f6] font-sans">
+    <div class="flex min-h-screen">
+      <!-- Sidebar -->
+      <aside class="sidebar w-64 p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center mb-8">
+            <img
+              src="assets/aspira-logo.png"
+              class="h-10 mr-3"
+              alt="Aspira Logo"
+            />
+            <div class="text-2xl font-semibold">Aspira LMS</div>
+          </div>
+
+          <nav class="space-y-2">
+            <a
+              href="student-dashboard.html"
+              class="flex items-center py-3 px-4 rounded-md bg-white/10 hover:bg-white/20 transition"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M3 12l9-9 9 9v9a3 3 0 01-3 3H6a3 3 0 01-3-3z" />
+              </svg>
+              Dashboard
+            </a>
+            <a
+              href="courses.html"
+              class="flex items-center py-3 px-4 rounded-md hover:bg-white/10 transition"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M4 6l8-3 8 3v12l-8 3-8-3z" />
+              </svg>
+              Courses
+            </a>
+            <a
+              href="announcements.html"
+              class="flex items-center py-3 px-4 rounded-md hover:bg-white/10 transition"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M15 17h5l-1.405-1.405A2.03 2.03 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"
+                />
+              </svg>
+              Announcements
+            </a>
+            <a
+              href="profile.html"
+              class="flex items-center py-3 px-4 rounded-md hover:bg-white/10 transition"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 14c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Profile
+            </a>
+          </nav>
+        </div>
+
+        <button
+          id="logout"
+          class="flex items-center py-3 px-4 mt-8 rounded-md hover:bg-white/10 transition w-full text-left"
+        >
+          <svg
+            class="w-5 h-5 mr-3"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M17 16l4-4m0 0l-4-4m4 4H7" />
+          </svg>
+          Logout
+        </button>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="flex-1 p-8">
+        <h1 class="text-4xl font-bold mb-8 text-gray-900">Dashboard</h1>
+
+        <!-- Summary Cards -->
+        <div
+          id="summary"
+          class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8"
+        ></div>
+
+        <!-- Quick Actions -->
+        <section class="card mb-8">
+          <h2 class="text-2xl font-semibold mb-4">Quick Actions</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <a
+              href="announcements.html"
+              class="p-4 border rounded-md flex items-center justify-between hover:bg-[#fff1f1] transition"
+            >
+              <div class="flex items-center gap-3">
+                <div class="icon-box text-[#7a2b2f]">📢</div>
+                <div>View Announcements</div>
+              </div>
+              <div class="px-3 py-1 rounded bg-[#6b1b1f] text-white">Go</div>
+            </a>
+            <a
+              href="courses.html"
+              class="p-4 border rounded-md flex items-center justify-between hover:bg-[#fff1f1] transition"
+            >
+              <div class="flex items-center gap-3">
+                <div class="icon-box text-[#7a2b2f]">📘</div>
+                <div>Go to Courses</div>
+              </div>
+              <div class="px-3 py-1 rounded bg-[#6b1b1f] text-white">Go</div>
+            </a>
+            <a
+              href="profile.html"
+              class="p-4 border rounded-md flex items-center justify-between hover:bg-[#fff1f1] transition"
+            >
+              <div class="flex items-center gap-3">
+                <div class="icon-box text-[#7a2b2f]">👤</div>
+                <div>View Profile</div>
+              </div>
+              <div class="px-3 py-1 rounded bg-[#6b1b1f] text-white">Go</div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Course List -->
+        <section class="card">
+          <h2 class="text-2xl font-semibold mb-4">Your Courses</h2>
+          <div id="coursesList" class="space-y-4 text-gray-700"></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const API = "/api";
+      const token = localStorage.getItem("aspira_token");
+      if (!token) location.href = "login.html";
+
+      async function api(path, opts = {}) {
+        opts.headers = {
+          ...(opts.headers || {}),
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        };
+        const res = await fetch(API + path, opts);
+        if (res.status === 401) {
+          localStorage.removeItem("aspira_token");
+          location.href = "login.html";
+        }
+        return res;
+      }
+
+      async function loadDashboard() {
+        try {
+          const [coursesRes, annsRes, meRes] = await Promise.all([
+            api("/courses").catch(() => ({ json: async () => [] })),
+            api("/announcements").catch(() => ({ json: async () => [] })),
+            api("/users/me").catch(() => ({ json: async () => ({}) })),
+          ]);
+
+          const courses = await coursesRes.json();
+          const anns = await annsRes.json();
+          const me = await meRes.json();
+
+          // Calculate pending submissions
+          const pending = (courses || []).reduce((acc, c) => {
+            const hasPending = (c.contents || []).some(
+              (ct) =>
+                (ct.type === "quiz" || ct.type === "activity") &&
+                !(ct.submissions || []).some((s) => s.user === me._id)
+            );
+            return acc + (hasPending ? 1 : 0);
+          }, 0);
+
+          // Render summary cards
+          const summaryCards = [
+            { label: "Courses", count: (courses || []).length, icon: "📚" },
+            { label: "Announcements", count: (anns || []).length, icon: "📢" },
+            { label: "Pending Submissions", count: pending, icon: "⏳" },
+          ];
+          document.getElementById("summary").innerHTML = summaryCards
+            .map(
+              (c) => `
+            <div class="card text-center">
+              <div class="icon-box mx-auto mb-4">${c.icon}</div>
+              <div class="text-4xl font-bold">${c.count}</div>
+              <div class="text-sm text-gray-600 mt-2">${c.label}</div>
+            </div>`
+            )
+            .join("");
+
+          // Render course list (✅ fixed)
+          const courseList = (courses || [])
+            .map(
+              (c) => `
+            <div class="border rounded p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-[#fff9f9] transition">
+              <div class="mb-2 sm:mb-0">
+                <div class="font-semibold">${c.title || "Untitled Course"}</div>
+                <div class="text-sm text-gray-600">${c.description || ""}</div>
+              </div>
+              <button 
+                class="open-course text-sm px-3 py-1 border rounded bg-[#6b1b1f] text-white hover:bg-[#531114]" 
+                data-id="${c._id || ""}">
+                View Course
+              </button>
+            </div>`
+            )
+            .join("");
+
+          document.getElementById("coursesList").innerHTML =
+            courseList || '<div class="text-gray-500">No courses yet</div>';
+
+          // ✅ handle course button clicks safely
+          document.querySelectorAll(".open-course").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const courseId = btn.getAttribute("data-id");
+              if (!courseId) {
+                alert("Course ID missing or invalid.");
+                return;
+              }
+
+              // Auto-detect current directory
+              window.location.href = "courses.html?id=" + encodeURIComponent(courseId);
+
+            });
+          });
+        } catch (err) {
+          console.error("Error loading dashboard:", err);
+        }
+      }
+
+      document.getElementById("logout").addEventListener("click", () => {
+        localStorage.removeItem("aspira_token");
+        localStorage.removeItem("aspira_user");
+        location.href = "login.html";
+      });
+
+      loadDashboard();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aspira LMS - Teacher Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .sidebar {
+        background: linear-gradient(180deg, #5b0f13, #591015);
+        min-height: 100vh;
+        color: #fff;
+      }
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+      }
+      .icon-box {
+        background: #fff4f4;
+        border-radius: 10px;
+        padding: 14px;
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .small {
+        color: #6b6b6b;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+
+  <body class="bg-[#fff6f6] font-sans">
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside class="sidebar w-64 p-6">
+        <div class="flex items-center mb-8">
+          <img src="assets/aspira-logo.png" class="h-10 mr-3" alt="Aspira" />
+          <div class="text-2xl font-semibold">Aspira LMS</div>
+        </div>
+        <nav class="space-y-4">
+          <a
+            class="flex items-center py-3 px-4 rounded-md bg-[#6b1b1f]/20"
+            href="teacher-dashboard.html"
+            >Dashboard</a
+          >
+          <a
+            class="flex items-center py-3 px-4 rounded-md hover:bg-white/5"
+            href="courses.html"
+            >Courses</a
+          >
+          <a
+            class="flex items-center py-3 px-4 rounded-md hover:bg-white/5"
+            href="announcements.html"
+            >Announcements</a
+          >
+          <a
+            class="flex items-center py-3 px-4 rounded-md hover:bg-white/5"
+            href="profile.html"
+            >Profile</a
+          >
+          <button
+            id="logout"
+            class="flex items-center py-3 px-4 rounded-md hover:bg-white/5"
+          >
+            Logout
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="flex-1 p-10">
+        <h1 class="text-4xl font-bold mb-8 text-gray-900">Dashboard</h1>
+
+        <!-- Summary Section -->
+        <div id="summary" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8"></div>
+
+        <!-- Quick Actions -->
+        <section class="card mb-8">
+          <h2 class="text-2xl font-semibold mb-4">Quick Actions</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <a
+              href="courses.html"
+              class="flex items-center justify-between border rounded p-4 hover:bg-rose-50"
+            >
+              <div class="flex items-center gap-3">
+                <div class="icon-box text-[#7a2b2f]">📚</div>
+                <div>View Courses</div>
+              </div>
+              <div class="px-3 py-1 rounded bg-[#6b1b1f] text-white">Go</div>
+            </a>
+
+            <a
+              href="announcements.html"
+              class="flex items-center justify-between border rounded p-4 hover:bg-rose-50"
+            >
+              <div class="flex items-center gap-3">
+                <div class="icon-box text-[#7a2b2f]">📢</div>
+                <div>View Announcements</div>
+              </div>
+              <div class="px-3 py-1 rounded bg-[#6b1b1f] text-white">Go</div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Courses List -->
+        <section class="card mt-6">
+          <h2 class="text-2xl font-semibold mb-4">Courses</h2>
+          <div id="coursesList" class="space-y-4"></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const API = "/api";
+      const token = localStorage.getItem("aspira_token");
+      if (!token) location.href = "login.html";
+
+      async function api(path, opts = {}) {
+        opts.headers = {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+          ...(opts.headers || {}),
+        };
+        return fetch(API + path, opts);
+      }
+
+      async function load() {
+        const [coursesRes, annsRes] = await Promise.all([
+          api("/courses"),
+          api("/announcements"),
+        ]);
+
+        const courses = coursesRes.ok ? await coursesRes.json() : [];
+        const anns = annsRes.ok ? await annsRes.json() : [];
+
+        // === Summary Cards ===
+        const students = new Set();
+        courses.forEach((c) =>
+          (c.students || []).forEach((s) => students.add(s))
+        );
+        const cards = [
+          { label: "Courses", count: courses.length },
+          { label: "Announcements", count: anns.length },
+          { label: "Registered Students", count: students.size },
+        ];
+        document.getElementById("summary").innerHTML = cards
+          .map(
+            (c) => `
+            <div class="card text-center">
+              <div class="text-4xl font-bold">${c.count}</div>
+              <div class="small mt-2">${c.label}</div>
+            </div>
+          `
+          )
+          .join("");
+
+        // === Courses List ===
+        document.getElementById("coursesList").innerHTML =
+          courses.length > 0
+            ? courses
+                .map(
+                  (c) => `
+                <div class="border rounded p-4 flex items-center justify-between hover:bg-rose-50 transition">
+                  <div>
+                    <div class="font-semibold">${c.title}</div>
+                    <div class="text-sm text-gray-600">${c.description || ""}</div>
+                  </div>
+                  <button 
+                    class="open-course text-sm px-3 py-1 border rounded" 
+                    data-id="${c._id}">
+                    Open
+                  </button>
+                </div>`
+                )
+                .join("")
+            : '<div class="text-gray-500">No courses yet.</div>';
+      }
+
+      document.getElementById("logout").addEventListener("click", () => {
+        localStorage.removeItem("aspira_token");
+        location.href = "login.html";
+      });
+
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("open-course")) {
+          const courseId = e.target.getAttribute("data-id");
+          if (!courseId) return alert("Invalid course ID");
+          window.location.href = "courses.html?id=" + encodeURIComponent(courseId);
+        }
+      });
+
+      load();
+    </script>
+  </body>
+</html>

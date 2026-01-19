@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <title>Aspira LMS • Admin Dashboard</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="assets/logo.png" />
+<style>
+  /* === General layout === */
+  .glass {
+    backdrop-filter: saturate(160%) blur(8px);
+    background: rgba(255, 255, 255, 0.8);
+  }
+  #sidebar.collapsed { width: 72px; }
+  #sidebar.collapsed .label { display: none; }
+  #sidebar.collapsed nav a { justify-content: center; }
+
+  /* === Modal system === */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    align-items: center;
+    justify-content: center;
+    display: none; /* default hidden */
+  }
+
+  /* ✅ When modal is opened, JS adds .flex */
+  .modal-backdrop.flex {
+    display: flex !important;
+    z-index: 10000;
+  }
+
+  /* ✅ Ensure inner white modal always appears above backdrop */
+  .modal-backdrop.flex .modal {
+    z-index: 10001;
+  }
+
+  /* === Individual z-index overrides === */
+  #viewCourseModal { z-index: 9999; }
+  #attendanceModal { z-index: 10000; }
+
+  /* === Modal box style === */
+  .modal {
+    background: #fff;
+    width: 100%;
+    max-width: 560px;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  /* === Form inputs === */
+  .input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+  }
+
+  /* 🧩 Debug outline (optional — can remove later) */
+  #attendanceModal {
+    outline: 4px solid limegreen;
+  }
+</style>
+    <!-- Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+    <!-- Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Page logic -->
+    <script src="js/admin-dashboard.js" defer></script>
+  </head>
+  <body class="h-full bg-rose-50 text-gray-800">
+    <div class="min-h-full flex">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="w-64 shrink-0 bg-[#5b0f13] text-white min-h-screen sticky top-0">
+        <div class="p-5 flex items-center gap-3 justify-between">
+          <div class="flex items-center gap-2">
+            <img src="assets/aspira-logo.png" class="w-8 h-8" alt="logo" />
+            <div class="label font-semibold tracking-wide uppercase">ASPIRA</div>
+          </div>
+          <button id="collapseBtn" class="p-2 rounded-md hover:bg-white/10" title="Collapse">
+            <span class="material-symbols-outlined text-white text-[18px]">menu_open</span>
+          </button>
+        </div>
+
+        <nav class="px-3 space-y-1 text-sm">
+          <a data-view="dashboard" href="#" class="navlink flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10">
+            <span class="material-symbols-outlined">dashboard</span><span class="label">Dashboard</span>
+          </a>
+          <a data-view="users" href="#" class="navlink flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10">
+            <span class="material-symbols-outlined">group</span><span class="label">Users</span>
+          </a>
+          <a data-view="courses" href="#" class="navlink flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10">
+            <span class="material-symbols-outlined">menu_book</span><span class="label">Courses</span>
+          </a>
+          <a data-view="announcements" href="#" class="navlink flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10">
+            <span class="material-symbols-outlined">campaign</span><span class="label">Announcements</span>
+          </a>
+          
+          <a href="profile.html" class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10">
+            <span class="material-symbols-outlined">person</span><span class="label">Profile</span>
+          </a>
+        </nav>
+
+        <div class="mt-auto p-4">
+          <a id="logoutBtn" href="#" class="w-full block text-center px-3 py-2 rounded-md bg-white/20 hover:bg-white/30">Log out</a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="flex-1 flex flex-col">
+        <header class="sticky top-0 z-20 glass border-b border-black/5">
+          <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+            <h1 class="text-lg font-semibold">Admin Dashboard</h1>
+            <div id="roleBadge" class="ml-auto text-xs px-2 py-1 rounded-md bg-black/10"></div>
+          </div>
+        </header>
+
+        <section class="max-w-7xl mx-auto w-full px-4 py-6">
+          <!-- DASHBOARD VIEW -->
+          <div id="view-dashboard" class="view">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div class="p-4 rounded-xl bg-white shadow-sm"><div class="text-sm opacity-70">Users</div><div id="statUsers" class="text-2xl font-semibold">—</div></div>
+              <div class="p-4 rounded-xl bg-white shadow-sm"><div class="text-sm opacity-70">Teachers</div><div id="statTeachers" class="text-2xl font-semibold">—</div></div>
+              <div class="p-4 rounded-xl bg-white shadow-sm"><div class="text-sm opacity-70">Students</div><div id="statStudents" class="text-2xl font-semibold">—</div></div>
+              <div class="p-4 rounded-xl bg-white shadow-sm"><div class="text-sm opacity-70">Courses</div><div id="statCourses" class="text-2xl font-semibold">—</div></div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div class="lg:col-span-2 p-4 rounded-xl bg-white shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <h2 class="font-semibold">Courses Overview</h2>
+                  <button id="gotoCourses" class="text-sm text-rose-700 hover:underline">Manage Courses</button>
+                </div>
+                <div id="recentCourses" class="mt-4 grid sm:grid-cols-2 gap-3"></div>
+              </div>
+              <div class="p-4 rounded-xl bg-white shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <h2 class="font-semibold">Latest Announcements</h2>
+                  <button id="gotoAnnouncements" class="text-sm text-rose-700 hover:underline">Manage</button>
+                </div>
+                <div id="latestAnnouncements" class="space-y-3"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- USERS VIEW -->
+          <div id="view-users" class="view hidden">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-semibold">All Users</h2>
+              <button id="addUserBtn" class="px-3 py-2 rounded-md bg-rose-700 text-white text-sm">+ Add User</button>
+            </div>
+            <div id="usersList" class="bg-white rounded-xl shadow-sm divide-y"></div>
+            <p id="usersEmpty" class="hidden text-sm opacity-70 mt-3">No users yet.</p>
+          </div>
+
+          <!-- COURSES VIEW -->
+          <div id="view-courses" class="view hidden">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-semibold">All Courses</h2>
+              <button id="addCourseBtn" class="px-3 py-2 rounded-md bg-rose-700 text-white text-sm">+ Add Course</button>
+            </div>
+            <div id="coursesList" class="bg-white rounded-xl shadow-sm divide-y"></div>
+            <p id="coursesEmpty" class="hidden text-sm opacity-70 mt-3">No courses yet.</p>
+          </div>
+
+          <!-- ANNOUNCEMENTS VIEW -->
+          <div id="view-announcements" class="view hidden">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-semibold">Announcements</h2>
+              <button id="addAnnouncementBtn" class="px-3 py-2 rounded-md bg-rose-700 text-white text-sm">+ New Announcement</button>
+            </div>
+            <div id="announcementsList" class="bg-white rounded-xl shadow-sm divide-y"></div>
+            <p id="annEmpty" class="hidden text-sm opacity-70 mt-3">No announcements yet.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- USER MODAL -->
+    <div id="userModal" class="modal-backdrop">
+      <div class="modal">
+        <h3 id="userModalTitle" class="text-lg font-semibold mb-2">Add User</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="u_firstname" class="input" placeholder="First name" />
+          <input id="u_lastname" class="input" placeholder="Last name" />
+        </div>
+        <input id="u_email" class="input mt-2" placeholder="Email" />
+        <input id="u_password" class="input mt-2" type="password" placeholder="Password (required for new)" />
+        <select id="u_role" class="input mt-2">
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+          <option value="admin">Admin</option>
+        </select>
+        <div class="mt-3 flex justify-end gap-2">
+          <button data-close="#userModal" class="px-3 py-2 rounded-md bg-gray-100">Cancel</button>
+          <button id="saveUser" class="px-3 py-2 rounded-md bg-rose-700 text-white">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COURSE MODAL -->
+    <div id="courseModal" class="modal-backdrop">
+      <div class="modal">
+        <h3 id="courseModalTitle" class="text-lg font-semibold mb-2">Add Course</h3>
+        <input id="c_title" class="input" placeholder="Course title" />
+        <textarea id="c_desc" class="input mt-2" placeholder="Description (optional)"></textarea>
+        <select id="c_teacher" class="w-full border rounded-md p-2 mt-2">
+          <option value="">-- Select Teacher --</option>
+        </select>
+
+        <div class="mt-3 flex justify-end gap-2">
+          <button data-close="#courseModal" class="px-3 py-2 rounded-md bg-gray-100">Cancel</button>
+          <button id="saveCourse" class="px-3 py-2 rounded-md bg-rose-700 text-white">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW COURSE MODAL ===== -->
+<div id="viewCourseModal" class="modal-backdrop hidden">
+  <div class="modal max-w-3xl">
+    <h3 class="text-lg font-semibold mb-3 flex justify-between items-center">
+      Course Details
+      <button data-close="#viewCourseModal" class="text-gray-500 hover:text-rose-700 text-xl font-bold">&times;</button>
+    </h3>
+
+    <div id="courseInfo" class="space-y-3">
+      <div><span class="font-semibold">Title:</span> <span id="v_title"></span></div>
+      <div><span class="font-semibold">Description:</span> <span id="v_desc"></span></div>
+      <div><span class="font-semibold">Teacher:</span> <span id="v_teacher"></span></div>
+
+<div>
+  <h4 class="font-semibold mt-3 flex justify-between items-center">
+    Students Enrolled
+    <button id="enrollStudentBtn" class="px-2 py-1 text-sm bg-rose-700 text-white rounded-md">+ Enroll</button>
+  </h4>
+
+  <!-- 🧩 Compact scrollable list -->
+  <div class="max-h-40 overflow-y-auto border rounded mt-1">
+    <ul id="v_students" class="list-disc pl-5 text-sm text-gray-700"></ul>
+  </div>
+
+  <!-- 🧩 Hidden form to enroll student by email -->
+<div id="enrollForm" class="hidden mt-3">
+  <label class="block font-medium text-sm mb-1">Search Student</label>
+  <input
+    type="text"
+    id="studentSearch"
+    placeholder="Type student email or name..."
+    class="border p-2 w-full mb-2 rounded"
+    autocomplete="off"
+  />
+
+  <!-- dropdown suggestion -->
+  <div
+  id="studentSuggestions"
+  class="border rounded bg-white shadow hidden"
+  style="max-height: 100px; overflow-y: auto;"
+></div>
+
+  <div class="text-right mt-2">
+    <button id="cancelEnroll" class="px-3 py-1 text-sm bg-gray-200 rounded-md mr-2">Cancel</button>
+    <button id="confirmEnroll" class="px-3 py-1 text-sm bg-rose-700 text-white rounded-md">Enroll</button>
+  </div>
+</div>
+
+
+
+      <div>
+  <h4 class="font-semibold mt-3 flex justify-between items-center">
+    Contents
+    <button id="addContentBtn" class="px-2 py-1 text-sm bg-rose-700 text-white rounded-md">+ Add Content</button>
+  </h4>
+
+  <ul id="v_contents" class="list-disc pl-5 text-sm text-gray-700 mb-2"></ul>
+</div>
+
+<!-- Hidden content upload form -->
+<div id="addContentForm" class="hidden border-t pt-3 mt-3">
+  <h5 class="font-semibold mb-2">Add New Content</h5>
+  <input type="text" id="content_title" placeholder="Content title" class="border p-2 w-full mb-2 rounded" />
+  <input type="file" id="content_file" class="border p-2 w-full mb-2 rounded bg-white" />
+  <div class="text-right">
+    <button id="cancelContent" class="px-3 py-1 text-sm bg-gray-200 rounded-md mr-2">Cancel</button>
+    <button id="saveContent" class="px-3 py-1 text-sm bg-rose-700 text-white rounded-md">Save</button>
+  </div>
+</div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+    <!-- ANNOUNCEMENT MODAL -->
+    <div id="annModal" class="modal-backdrop">
+      <div class="modal">
+        <h3 id="annModalTitle" class="text-lg font-semibold mb-2">New Announcement</h3>
+        <input id="a_title" class="input" placeholder="Title" />
+        <textarea id="a_body" class="input mt-2" rows="5" placeholder="Message"></textarea>
+        <div class="mt-3 flex justify-end gap-2">
+          <button data-close="#annModal" class="px-3 py-2 rounded-md bg-gray-100">Cancel</button>
+          <button id="saveAnnouncement" class="px-3 py-2 rounded-md bg-rose-700 text-white">Save</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ===== ATTENDANCE MODAL ===== -->
+<div id="attendanceModal" class="modal-backdrop hidden">
+  <div class="modal max-w-3xl">
+    <h3 class="text-lg font-semibold mb-2 flex justify-between items-center">
+      Mark Attendance
+      <button data-close="#attendanceModal" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+    </h3>
+
+    <input type="date" id="att_date" class="border p-2 mb-3 w-full" />
+    <div id="attendanceList" class="overflow-y-auto max-h-64 border rounded"></div>
+
+    <div class="mt-3 text-right flex justify-end gap-2">
+      <div class="relative">
+        <button id="recoverAttendanceBtn" class="px-4 py-2 rounded bg-gray-200 text-sm">Recover Attendance</button>
+        <div id="recoverList"
+          class="absolute right-0 mt-2 w-48 bg-white border rounded shadow hidden z-50 max-h-60 overflow-y-auto">
+        </div>
+      </div>
+
+      <button id="saveAttendance" class="px-4 py-2 rounded bg-rose-700 text-white text-sm">Save</button>
+    </div>
+  </div>
+</div>
+
+  </body>
+</html>

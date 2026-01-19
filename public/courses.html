@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Courses</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-[#fff6f6] text-gray-800 font-sans">
+    <!-- Header -->
+    <header class="flex justify-between items-center px-8 py-4 bg-[#5b0f13] text-white">
+      <div class="flex items-center gap-3">
+        <img src="assets/aspira-logo.png" class="h-8" />
+        <span class="font-semibold text-lg">ASPIRA LMS</span>
+      </div>
+      <button id="logout" class="bg-white text-[#5b0f13] px-3 py-1 rounded">Logout</button>
+    </header>
+
+    <!-- Main -->
+    <main class="max-w-5xl mx-auto mt-8 p-6 bg-white rounded-xl shadow">
+      <div id="content"></div>
+    </main>
+
+    <!-- ===== Attendance Modal ===== -->
+    <div id="attendanceModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg w-full max-w-2xl p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Mark Attendance</h3>
+          <button id="closeAttendance" class="text-gray-600 hover:text-black text-xl">✖</button>
+        </div>
+        <input type="date" id="att_date" class="border p-2 mb-3 w-full rounded" />
+        <div id="attendanceList" class="overflow-y-auto max-h-64 border rounded p-2"></div>
+        <div class="flex justify-end gap-2 mt-3">
+          <button id="recoverAttendance" class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">Recover Last</button>
+          <button id="saveAttendance" class="bg-[#5b0f13] text-white px-3 py-1 rounded">Save</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ===== View Students Modal ===== -->
+<div id="studentsModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg w-full max-w-md p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Enrolled Students</h3>
+      <button id="closeStudents" class="text-gray-600 hover:text-black text-xl">✖</button>
+    </div>
+    <div id="studentsList" class="overflow-y-auto max-h-80 border rounded p-3 text-sm text-gray-700">
+      <div class="text-gray-500">Loading...</div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const API = "/api";
+const token = localStorage.getItem("aspira_token");
+if (!token) location.href = "login.html";
+
+// === Helper ===
+async function api(path, opt = {}) {
+  opt.headers = {
+    Authorization: "Bearer " + token,
+    ...(opt.headers || {}),
+  };
+  const res = await fetch(API + path, opt);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+document.getElementById("logout").addEventListener("click", () => {
+  localStorage.removeItem("aspira_token");
+  location.href = "login.html";
+});
+
+// === Main Loader ===
+async function load() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+
+  // --- Show all courses if no ID ---
+  if (!id) {
+    const courses = await api("/courses");
+    document.getElementById("content").innerHTML =
+      `<h2 class="text-2xl font-semibold mb-4">All Courses</h2>` +
+      courses.map(
+        c => `
+          <div class="border rounded p-4 mb-3">
+            <div class="font-semibold">${c.title}</div>
+            <div class="text-sm text-gray-600">${c.description || ""}</div>
+            <a href="courses.html?id=${c._id}" class="text-blue-600 underline text-sm">Open</a>
+          </div>`
+      ).join("");
+    return;
+  }
+
+  // --- Fetch data ---
+  const [course, user] = await Promise.all([
+    api("/courses/" + id),
+    api("/users/me"),
+  ]);
+
+  // --- Build HTML ---
+  let html = `
+    <div class="border rounded p-4 mb-3">
+      <h2 class="text-3xl font-bold mb-1">${course.title}</h2>
+      <p class="text-gray-600 mb-4">${course.description || ""}</p>
+      ${user.role === "teacher" ? `
+        <div class="flex flex-wrap gap-3">
+          <button id="markAttendance" class="bg-[#5b0f13] text-white px-4 py-2 rounded hover:bg-[#73161b]">📅 Mark Attendance</button>
+          <button id="enrollStudent" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">➕ Enroll Student</button>
+              <button id="viewStudents" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">👥 View Students</button>
+        </div>` : ""}
+    </div>
+  `;
+
+  // --- Course Contents ---
+  html += `<h3 class="text-xl font-semibold mb-2">Contents</h3>`;
+  html += (course.contents && course.contents.length)
+    ? course.contents.map(ct => `
+        <div class="border rounded p-3 mb-2 flex justify-between items-center">
+          <a href="${ct.file}" target="_blank" class="text-blue-600 underline">${ct.title}</a>
+          <div class="text-xs text-gray-500">${new Date(ct.createdAt).toLocaleString()}</div>
+        </div>`
+      ).join("")
+    : `<div class="text-gray-500 mb-4">No content uploaded yet.</div>`;
+
+  // --- Teacher Section ---
+  if (user.role === "teacher") {
+    html += `
+      <div class="mt-8">
+        <h3 class="text-xl font-semibold mb-2">Upload Content</h3>
+        <form id="uploadForm" class="space-y-2">
+          <input type="text" id="title" class="border p-2 rounded w-full" placeholder="Title (optional)">
+          <input type="file" id="contentFile" class="border p-2 rounded w-full" required>
+          <button class="bg-[#5b0f13] text-white px-4 py-2 rounded">Upload</button>
+        </form>
+      </div>
+
+      <div class="mt-10">
+        <h3 class="text-xl font-semibold mb-2">Student Submissions</h3>
+        <div id="submissionsList" class="border rounded p-3 text-sm text-gray-700">
+          <div class="text-gray-500">Loading submissions...</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // --- Student Section ---
+  if (user.role === "student") {
+    html += `
+      <div class="mt-8">
+        <h3 class="text-xl font-semibold mb-2">Submit Assignment</h3>
+        <form id="submitForm" class="space-y-2">
+          <input type="file" id="file" class="border p-2 rounded w-full" required>
+          <textarea id="notes" class="border p-2 rounded w-full" placeholder="Notes (optional)"></textarea>
+          <button class="bg-[#5b0f13] text-white px-4 py-2 rounded">Submit</button>
+        </form>
+      </div>
+
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-2">My Submission</h3>
+        <div id="mySubmission" class="border rounded p-3 text-sm text-gray-700">
+          <div class="text-gray-500">Loading your submission...</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // --- ✅ Render first ---
+  document.getElementById("content").innerHTML = html;
+
+  // ============ EVENT LISTENERS AFTER RENDER ============
+
+  // --- Upload Content ---
+  const uploadForm = document.getElementById("uploadForm");
+  if (uploadForm) {
+    uploadForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = document.getElementById("contentFile").files[0];
+      const title = document.getElementById("title").value.trim();
+      if (!file) return alert("Please choose a file.");
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", title || file.name);
+      try {
+        const res = await fetch(API + "/courses/" + id + "/upload-content", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: form,
+        });
+        if (!res.ok) throw new Error(await res.text());
+        alert("✅ Upload successful!");
+        await load();
+      } catch {
+        alert("❌ Upload failed!");
+      }
+    });
+  }
+
+  // --- Student Submit ---
+  const submitForm = document.getElementById("submitForm");
+  if (submitForm) {
+    submitForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = document.getElementById("file").files[0];
+      const notes = document.getElementById("notes").value.trim();
+      if (!file) return alert("Please choose a file.");
+      const form = new FormData();
+      form.append("file", file);
+      form.append("notes", notes);
+      try {
+        const res = await fetch(API + "/courses/" + id + "/submit", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: form,
+        });
+        if (!res.ok) throw new Error(await res.text());
+        alert("✅ Submission successful!");
+        await load(); // ensures reload
+      } catch (err) {
+        console.error("Submission failed:", err);
+        alert("❌ Failed to submit.");
+      }
+    });
+  }
+
+  // --- Student: Load Own Submission ---
+  if (user.role === "student") {
+    const box = document.getElementById("mySubmission");
+    try {
+      const res = await fetch(`${API}/courses/${id}/my-submission`, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const subs = await res.json();
+      const mine = subs.filter(s => s.student?._id === user._id);
+      if (!mine.length) {
+        box.innerHTML = `<div class="text-gray-500 text-sm">You haven't submitted anything yet.</div>`;
+        return;
+      }
+      const latest = mine[mine.length - 1];
+      box.innerHTML = `
+        <div class="flex justify-between items-center">
+          <div>
+            <div><strong>File:</strong> <a href="${latest.file}" target="_blank" class="text-blue-600 underline">${latest.file.split('/').pop()}</a></div>
+            <div><strong>Status:</strong> ${latest.status}</div>
+            <div><strong>Grade:</strong> ${latest.grade || '—'}</div>
+          </div>
+          <div class="text-xs text-gray-500">${new Date(latest.createdAt).toLocaleString()}</div>
+        </div>
+      `;
+    } catch (err) {
+      console.error("❌ Error loading submission:", err);
+      box.innerHTML = `<div class="text-red-500 text-sm">Failed to load submission.</div>`;
+    }
+  }
+
+  // --- Teacher: Load Submissions ---
+  if (user.role === "teacher") {
+    const list = document.getElementById("submissionsList");
+    try {
+      const res = await fetch(`${API}/courses/${id}/submissions?_=${Date.now()}`, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const subs = await res.json();
+      if (!subs.length) {
+        list.innerHTML = `<div class="text-gray-500 text-sm text-center py-2">No submissions yet.</div>`;
+        return;
+      }
+      list.innerHTML = subs.map(s => `
+        <div class="flex justify-between items-center border-b py-2">
+          <div>
+            <div class="font-medium">${s.student?.firstname ?? "Unknown"} ${s.student?.lastname ?? ""}</div>
+            <a href="${s.file}" target="_blank" class="text-blue-600 underline text-sm">View File</a>
+            <div class="text-xs text-gray-500">Status: ${s.status}</div>
+          </div>
+          <div class="text-right">
+            <input data-id="${s._id}" type="text" value="${s.grade || ""}" placeholder="Enter grade" class="border p-1 w-20 rounded text-sm">
+            <button class="saveGrade bg-rose-700 text-white px-2 py-1 rounded text-xs ml-1">Save</button>
+          </div>
+        </div>`
+      ).join("");
+      document.querySelectorAll(".saveGrade").forEach(btn => {
+        btn.onclick = async () => {
+          const subId = btn.previousElementSibling.dataset.id;
+          const grade = btn.previousElementSibling.value;
+          try {
+            const r = await fetch(`${API}/courses/${id}/submissions/${subId}/grade`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify({ grade }),
+            });
+            if (!r.ok) throw new Error(await r.text());
+            alert("✅ Grade saved!");
+          } catch {
+            alert("❌ Failed to save grade.");
+          }
+        };
+      });
+    } catch (err) {
+      console.error("❌ Error loading submissions:", err);
+      list.innerHTML = `<div class="text-red-500 text-sm text-center py-2">Failed to load submissions.</div>`;
+    }
+  }
+
+  // --- Attendance Logic ---
+  const markBtn = document.getElementById("markAttendance");
+  const modal = document.getElementById("attendanceModal");
+  if (markBtn) {
+    markBtn.onclick = async () => {
+      modal.classList.remove("hidden");
+      const list = document.getElementById("attendanceList");
+      const freshCourse = await api("/courses/" + id);
+      list.innerHTML = freshCourse.students.length
+        ? freshCourse.students.map(s => `
+            <div class="flex justify-between items-center border-b py-2">
+              <span>${s.firstname} ${s.lastname}</span>
+              <select data-id="${s._id}" class="border p-1 rounded text-sm">
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+                <option value="Late">Late</option>
+                <option value="Excused">Excused</option>
+              </select>
+            </div>`).join("")
+        : `<div class="text-gray-500 text-sm">No enrolled students yet.</div>`;
+    };
+  }
+
+  document.getElementById("closeAttendance").onclick = () => modal.classList.add("hidden");
+
+  document.getElementById("saveAttendance").onclick = async () => {
+    const date = document.getElementById("att_date").value;
+    if (!date) return alert("Select date first.");
+    const records = Array.from(document.querySelectorAll("#attendanceList select"))
+      .map(sel => ({ studentId: sel.dataset.id, status: sel.value }));
+    try {
+      const res = await fetch(API + "/attendance/" + id + "/mark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ date, records }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      alert("✅ Attendance saved!");
+      modal.classList.add("hidden");
+    } catch {
+      alert("❌ Failed to save attendance.");
+    }
+  };
+
+
+document.getElementById("recoverAttendance").onclick = async () => {
+  const date = document.getElementById("att_date").value;
+  if (!date) {
+    alert("⚠️ Please select a date first.");
+    return;
+  }
+
+  try {
+    const res = await fetch(API + "/attendance/" + id + "/recover", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ date }), // ✅ Send the date properly
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.msg || "❌ No previous attendance found.");
+      return;
+    }
+
+    const data = await res.json();
+
+    // 🧾 Show recovered records inside the modal
+    const records = data.record?.records || [];
+    const list = document.getElementById("attendanceList");
+
+    if (!records.length) {
+      list.innerHTML = `<div class="text-sm text-gray-500 text-center py-2">No records for this date.</div>`;
+    } else {
+      list.innerHTML = records
+        .map(r => {
+          const name =
+            r.student
+              ? `${r.student.firstname || ''} ${r.student.lastname || ''}`.trim()
+              : '(Deleted Student)'; // ✅ fallback
+
+          return `
+            <div class="flex justify-between items-center border-b py-2">
+              <span>${name}</span>
+              <span class="text-sm font-medium">${r.status}</span>
+            </div>`;
+        })
+        .join('');
+    }
+
+    alert(`✅ Recovered attendance for ${new Date(data.record.date).toLocaleDateString()}`);
+  } catch (err) {
+    console.error("Recover failed:", err);
+    alert("❌ Error recovering attendance. Check console for details.");
+  }
+};
+
+// === View Enrolled Students ===
+const viewStudentsBtn = document.getElementById("viewStudents");
+const studentsModal = document.getElementById("studentsModal");
+
+if (viewStudentsBtn) {
+  viewStudentsBtn.onclick = async () => {
+    studentsModal.classList.remove("hidden");
+    const list = document.getElementById("studentsList");
+    list.innerHTML = `<div class="text-gray-500 text-center">Loading...</div>`;
+
+    try {
+      const res = await fetch(API + "/courses/" + id, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const courseData = await res.json();
+      if (!courseData.students || !courseData.students.length) {
+        list.innerHTML = `<div class="text-gray-500 text-sm text-center py-2">No students enrolled yet.</div>`;
+        return;
+      }
+      list.innerHTML = courseData.students
+        .map(
+          (s) => `
+          <div class="border-b py-2">
+            <div class="font-medium">${s.firstname} ${s.lastname}</div>
+            <div class="text-xs text-gray-500">${s.email || ""}</div>
+          </div>`
+        )
+        .join("");
+    } catch (err) {
+      console.error("❌ Error loading students:", err);
+      list.innerHTML = `<div class="text-red-500 text-sm text-center py-2">Failed to load students.</div>`;
+    }
+  };
+}
+
+document.getElementById("closeStudents").onclick = () =>
+  studentsModal.classList.add("hidden");
+
+
+// === Smart Enroll Student (with search dropdown) ===
+const enrollBtn = document.getElementById("enrollStudent");
+
+if (enrollBtn) {
+  // Create modal dynamically
+  const modal = document.createElement("div");
+  modal.innerHTML = `
+    <div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
+        <h2 class="text-lg font-semibold mb-4 text-gray-800">Enroll Student</h2>
+
+        <input type="text" id="studentSearch" placeholder="Search by name or email"
+          class="border p-2 w-full rounded mb-2 focus:ring-2 focus:ring-rose-400 outline-none" />
+
+        <div id="studentSuggestions" class="border rounded bg-white shadow hidden"
+          style="max-height:150px;overflow-y:auto;"></div>
+
+        <div class="text-right mt-4">
+          <button id="cancelEnroll" class="px-3 py-1 bg-gray-200 rounded mr-2">Cancel</button>
+          <button id="confirmEnroll" class="px-3 py-1 bg-rose-700 text-white rounded">Enroll</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.classList.add("hidden");
+
+  const searchInput = modal.querySelector("#studentSearch");
+  const suggestions = modal.querySelector("#studentSuggestions");
+  const cancelBtn = modal.querySelector("#cancelEnroll");
+  const confirmBtn = modal.querySelector("#confirmEnroll");
+  let selectedStudent = null;
+
+  enrollBtn.onclick = () => {
+    modal.classList.remove("hidden");
+    searchInput.focus();
+  };
+
+  cancelBtn.onclick = () => {
+    modal.classList.add("hidden");
+    searchInput.value = "";
+    suggestions.classList.add("hidden");
+  };
+
+  // 🔍 Smart search
+  searchInput.addEventListener("input", async () => {
+    const query = searchInput.value.trim();
+    selectedStudent = null;
+    if (query.length < 2) {
+      suggestions.classList.add("hidden");
+      return;
+    }
+
+    try {
+      const res = await fetch(API + "/users?email=" + encodeURIComponent(query), {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const users = await res.json();
+      const students = users.filter((u) => u.role === "student");
+      if (!students.length) {
+        suggestions.innerHTML = `<div class="p-2 text-sm text-gray-500">No students found</div>`;
+      } else {
+        suggestions.innerHTML = students
+          .slice(0, 3) // ✅ limit to 3 results
+          .map(
+            (s) => `
+          <div class="p-2 text-sm hover:bg-rose-50 cursor-pointer border-b"
+               data-id="${s._id}" data-name="${s.firstname} ${s.lastname}">
+            ${s.firstname} ${s.lastname} 
+            <span class="text-gray-500 text-xs">(${s.email})</span>
+          </div>`
+          )
+          .join("");
+      }
+      suggestions.classList.remove("hidden");
+    } catch (err) {
+      console.error("Error loading students:", err);
+    }
+  });
+
+  // 🖱 Select a student
+  suggestions.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-id]");
+    if (!item) return;
+    selectedStudent = { id: item.dataset.id, name: item.dataset.name };
+    searchInput.value = item.dataset.name;
+    suggestions.classList.add("hidden");
+  });
+
+  // ➕ Enroll the selected student
+  confirmBtn.onclick = async () => {
+    if (!selectedStudent) return alert("Please select a student first.");
+
+    try {
+      const res = await fetch(API + "/courses/" + id + "/add-student", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ studentId: selectedStudent.id }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      alert(`✅ ${selectedStudent.name} enrolled successfully!`);
+      modal.classList.add("hidden");
+      load(); // reload course view
+    } catch (err) {
+      console.error("Enrollment failed:", err);
+      alert("❌ Enrollment failed. Check console for details.");
+    }
+  };
+}
+}
+
+
+
+load();
+</script>
+
+  </body>
+</html>
