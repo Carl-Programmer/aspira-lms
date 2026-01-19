@@ -5,7 +5,7 @@ The project focuses on implementing core LMS functionalities such as user manage
 
 ---
 
-## 📌 Features
+## Features
 
 - User authentication and authorization (Admin, Teacher, Student)
 - Role-based access control
@@ -16,7 +16,7 @@ The project focuses on implementing core LMS functionalities such as user manage
 
 ---
 
-## 🧰 Tech Stack
+## Tech Stack
 
 - **Backend:** Node.js
 - **Database:** MongoDB
@@ -24,7 +24,7 @@ The project focuses on implementing core LMS functionalities such as user manage
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ---
 
